@@ -7,6 +7,7 @@ import CustomError from './classes/CustomError';
 import jwt from 'jsonwebtoken';
 import {UserOutput} from './types/DBTypes';
 import userModel from './api/models/userModel';
+import {validationResult} from 'express-validator';
 
 // convert GPS coordinates to decimal format
 // for longitude, send exifData.gps.GPSLongitude, exifData.gps.GPSLongitudeRef
@@ -90,6 +91,19 @@ const makeThumbnail = async (
     next(new CustomError('Thumbnail not created', 500));
   }
 };
+const validationErrors = (req: Request, res: Response, next: NextFunction) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const messages: string = errors
+      .array()
+      .map((error) => `${error.msg}: ${error.param}`)
+      .join(', ');
+    console.log('validation errors:', messages);
+    next(new CustomError(messages, 400));
+    return;
+  }
+  next();
+};
 
 const authenticate = async (
   req: Request,
@@ -115,13 +129,13 @@ const authenticate = async (
       process.env.JWT_SECRET as string
     ) as UserOutput;
 
-    // check if user exists in database (optional)
-    // const user = await userModel.findById(tokenContent._id);
+    //check if user exists in database (optional)
+    const user = await userModel.findById(tokenContent._id);
 
-    // if (!user) {
-    //   next(new CustomError('Token not valid', 403));
-    //   return;
-    // }
+    if (!user) {
+      next(new CustomError('Token not valid', 403));
+      return;
+    }
 
     // add user to req locals to be used in other middlewares / controllers
     res.locals.user = tokenContent;
@@ -132,4 +146,11 @@ const authenticate = async (
   }
 };
 
-export {notFound, errorHandler, getCoordinates, makeThumbnail, authenticate};
+export {
+  notFound,
+  errorHandler,
+  getCoordinates,
+  makeThumbnail,
+  authenticate,
+  validationErrors,
+};

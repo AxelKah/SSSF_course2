@@ -1,27 +1,39 @@
-import mongoose, {Schema} from 'mongoose';
+import mongoose from 'mongoose';
+import {SchemaTypes} from 'mongoose';
 import {Cat} from '../../types/DBTypes';
-// TODO: mongoose schema for cat
 
-const catSchema: Schema = new mongoose.Schema<Cat>({
-  cat_name: {type: String},
-  weight: {type: Number},
-  filename: {type: String},
-  birthdate: {type: Date},
+const catSchema = new mongoose.Schema({
+  cat_name: {
+    type: String,
+    required: true,
+  },
+  weight: {
+    type: Number,
+    required: true,
+  },
+  filename: {
+    type: String,
+  },
+  birthdate: {
+    type: Date,
+    required: true,
+  },
   location: {
     type: {
       type: String,
       enum: ['Point'],
-      required: true,
     },
     coordinates: {
       type: [Number],
-      required: true,
     },
   },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    required: [true, 'Owner is required.'],
   },
 });
+
+catSchema.index({location: '2dsphere'});
 
 export default mongoose.model<Cat>('Cat', catSchema);

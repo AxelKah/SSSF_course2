@@ -39,6 +39,7 @@ router
     body('cat_name').notEmpty().escape(),
     body('birthdate').isDate(),
     body('weight').isNumeric(),
+    body('location').isObject(),
     catPost
   );
 

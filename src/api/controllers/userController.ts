@@ -36,7 +36,7 @@ const userGet = async (
       .findById(req.params.id)
       .select('-password -__v -role');
     if (!user) {
-      throw new CustomError('No species found', 404);
+      throw new CustomError('No user found', 404);
     }
     res.json(user);
   } catch (error) {
@@ -52,83 +52,14 @@ const userPost = async (
   try {
     req.body.role = 'user';
     req.body.password = bcrypt.hashSync(req.body.password, 10);
-    const user = await userModel.create(req.body);
+    let user = await userModel.create(req.body);
+    user = await userModel.findById(user._id).select('-password -__v -role');
     const response = {
       message: 'User added',
       data: user,
     };
+    console.log(response);
     res.json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const userPut = async (
-  req: Request<{id: string}, {}, Omit<User, 'user_id'>>,
-  res: Response<MessageResponse & {data: User}>,
-  next: NextFunction
-) => {
-  try {
-    const user = await userModel
-      .findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-      })
-      .select('-password -__v -role');
-    if (!user) {
-      throw new CustomError('No user found', 404);
-    }
-    const response = {
-      message: 'User updated',
-      data: user,
-    };
-    res.json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const userDelete = async (
-  req: Request<{id: string}, {}, {}>,
-  res: Response<MessageResponse>,
-  next: NextFunction
-) => {
-  try {
-    const user = await userModel
-      .findByIdAndDelete(req.params.id)
-      .select('-password -__v -role');
-    if (!user) {
-      throw new CustomError('No user found', 404);
-    }
-    res.json({message: 'User deleted'});
-  } catch (error) {
-    next(error);
-  }
-};
-const checkToken = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    next(new CustomError('token not valid', 403));
-  } else {
-    res.json(req.user);
-  }
-};
-
-const userDeleteCurrent = async (
-  req: Request,
-  res: Response<MessageResponse>,
-  next: NextFunction
-) => {
-  try {
-    if (!res.locals.user) {
-      throw new CustomError('Not authorized', 401);
-    }
-    const user = await userModel.findByIdAndDelete(res.locals.user._id);
-    if (!user) {
-      throw new CustomError('User not found', 404);
-    }
-    res.json({
-      message: 'User deleted',
-      data: {user_name: user.user_name, email: user.email},
-    } as MessageResponse & {data: {user_name: string; email: string}});
   } catch (error) {
     next(error);
   }
@@ -162,13 +93,55 @@ const userPutCurrent = async (
   }
 };
 
+const userDeleteCurrent = async (
+  req: Request,
+  res: Response<MessageResponse>,
+  next: NextFunction
+) => {
+  try {
+    if (!res.locals.user) {
+      throw new CustomError('Not authorized', 401);
+    }
+    const user = await userModel.findByIdAndDelete(res.locals.user._id);
+    if (!user) {
+      throw new CustomError('User not found', 404);
+    }
+    res.json({
+      message: 'User deleted',
+      data: {user_name: user.user_name, email: user.email},
+    } as MessageResponse & {data: {user_name: string; email: string}});
+  } catch (error) {
+    next(error);
+  }
+};
+
+const checkToken = async (
+  req: Request,
+  res: Response<MessageResponse>,
+  next: NextFunction
+) => {
+  try {
+    if (!res.locals.user) {
+      throw new CustomError('Not authorized', 401);
+    }
+    const user = await res.locals.user;
+
+    const filteredUser = {...user};
+    delete filteredUser.password;
+    delete filteredUser.role;
+
+    console.log(filteredUser);
+    res.json(filteredUser);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
-  checkToken,
   userListGet,
   userGet,
   userPost,
-  userPut,
-  userDelete,
-  userDeleteCurrent,
   userPutCurrent,
+  userDeleteCurrent,
+  checkToken,
 };
