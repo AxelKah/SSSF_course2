@@ -30,6 +30,7 @@ const catGet = async (
   }
 };
 
+
 const catListGet = async (
   req: Request,
   res: Response<Cat[]>,
